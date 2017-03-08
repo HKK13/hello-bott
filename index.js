@@ -20,13 +20,6 @@ const users = require('./routers/users');
 
 
 /*
- * Url Configurations
- */
-router.use('/', index.routes());
-router.use('/users', users.routes());
-
-
-/*
  * App configurations.
  */
 app
