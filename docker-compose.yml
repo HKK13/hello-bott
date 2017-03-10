@@ -1,0 +1,7 @@
+bot_web:
+  build: .
+  container_name: bot_web
+  volumes:
+    - "./:/src"
+  ports:
+    - "3000"
