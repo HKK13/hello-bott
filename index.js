@@ -1,3 +1,6 @@
+"use strict";
+
+
 /*
  * Libraries
  */
@@ -11,7 +14,6 @@ Bot.once('connected', () => {
   console.log('Connected');
   const manager = require('./libs/manager');
 });
-
 /*
  * Instance objects.
  */
