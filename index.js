@@ -5,18 +5,18 @@ const Koa = require('koa');
 const Router = require('koa-router');
 const logger = require('koa-logger');
 const bodyParser = require('koa-bodyparser');
+const Bot = require('./libs/bot');
+
+Bot.once('connected', () => {
+  console.log('Connected');
+  const manager = require('./libs/manager');
+});
 
 /*
  * Instance objects.
  */
 const app = new Koa();
 const router = new Router();
-
-/*
- * Routers
- */
-const index = require('./routers/index');
-const users = require('./routers/users');
 
 
 /*
