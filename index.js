@@ -1,6 +1,5 @@
 "use strict";
 
-
 /*
  * Libraries
  */
@@ -9,11 +8,21 @@ const Router = require('koa-router');
 const logger = require('koa-logger');
 const bodyParser = require('koa-bodyparser');
 const Bot = require('./libs/bot');
+const config = require('config');
+const mongoose = require('mongoose');
+const Manager = require('./libs/manager');
+const UserCommands = require('./libs/commands/user');
+
+mongoose.Promise = require('bluebird');
+mongoose.connect(process.env.DB_LINK || config.get('database.link'));
+const User = require('./models/user');
 
 Bot.once('connected', () => {
-  console.log('Connected');
-  const manager = require('./libs/manager');
+  const manager = new Manager({
+    user: new UserCommands(Bot)
+  });
 });
+
 /*
  * Instance objects.
  */

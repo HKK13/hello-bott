@@ -28,7 +28,10 @@ class Bot extends EventEmitter{
 
   _initializeEvents() {
     this.rtm.on(client_events.RTM.AUTHENTICATED, data => this.emit('authenticated', data));
-    this.rtm.on(client_events.RTM.RTM_CONNECTION_OPENED, (asd) =>  this.emit('connected', asd));
+    this.rtm.on(client_events.RTM.RTM_CONNECTION_OPENED, () =>  {
+      debug('Bot connected.');
+      this.emit('connected');
+    });
     this.rtm.on(rtm_events.MESSAGE, message => this.emit('message', message));
     this.rtm.on(rtm_events.MESSAGE_CHANGED, message => this.emit('messageChanges', message));
     this.rtm.on(rtm_events.MESSAGE_DELETED, message => this.emit('messageDeleted', message));
@@ -39,13 +42,21 @@ class Bot extends EventEmitter{
 
   authenticated(data) {
     this.data = data;
+
+    this.owner = _.find(this.data.users, (user) => {
+      return user.is_primary_owner;
+    });
+    debug('Owner is stored. %o', this.owner);
+
     this.id = (_.find(data.users, (user) => {
       return user.name === 'taskman';
     })).id;
+    debug('Bot id is stored. %o', this.id);
 
     _.forEach(data.channels, (channel) => {
       this.channels[channel.name] = channel.id;
     });
+    debug('Channels are stored. %o', this.channels);
 
     let currentChannels = Object.keys(this.channels).join(', ');
     debug(`Logged in as ${this.data.self.name} of team ${this.data.team.name}, current channels are ${currentChannels}.`);
