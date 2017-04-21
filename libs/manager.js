@@ -1,8 +1,6 @@
 'use strict';
 
 const _ = require('lodash');
-const WebClient = require('@slack/client').WebClient;
-const bot = require('./bot');
 const config = require('config');
 const debug = require('debug')('manager');
 const Workday = require('../models/workday');
@@ -15,28 +13,28 @@ class Manager {
    * @Constructor
    * @param {Object} commandModules
    */
-  constructor(commandModules) {
+  constructor(bot, commandModules) {
     this.bot = bot;
-    this.web = new WebClient(process.env.SLACK_TOKEN || config.get('slackToken'));
     this.commands = {}; // Maybe use Set?
     debug('Manager created.');
 
     if (commandModules) {
       _.forEach(commandModules, (module, key) => {
-        this.commands['_' + key] = module;
-        debug(`Add module '${key}'.`);
+        if (module.dispatchCommand) {
+          this.commands['_' + key] = module;
+          debug(`Add module '${key}'.`);
+        } else {
+          throw new Error('Module does not have dispatchCommand() method.');
+        }
       });
     }
-
-    this._listen();
   }
 
 
   /**
-   * @private
    * Listens for mentions or direct messages to the bot.
    */
-  _listen() {
+  listen() {
     this.bot.on('message', (message) => {
       debug('Message: %o', message);
 
@@ -64,47 +62,31 @@ class Manager {
    * @private
    */
   async dispatchCommand(message) {
-    let command = '_' + (message.text.substr(0, message.text.indexOf(' ')) || message.text);
-    let text = '';
-    if (message.text.indexOf(' ') != -1) {
-      text = message.text.substr(message.text.indexOf(' ') + 1);
-      if (text.split(' ').length >= 2) {
-        var secondCommand = text.split(' ')[0];
-        if(text.indexOf('<@'))
-          var param = text.split(' ')[1].split('@')[1].split('>')[0];
-      }
-    }
-
-
     try {
-      let user = await User.findOne({'slack.id': message.user});
+      let command = '_' + (message.text.substr(0, message.text.indexOf(' ')) || message.text);
+      let text = '';
 
-      debug(`Received '${command}', is user owner: ${this.bot.owner.id == message.user}, is registered in database:`, user);
-
-      // There should be a better way!
-      if (!user && this.bot.owner.id == message.user && command == '_user'
-            && secondCommand && param && secondCommand == 'create'
-            && param == this.bot.owner.id) {
-
-        user = this.bot.owner;
-      } else if(!user) {
-        this.send(`<@${message.user}>, you are not registered in taskman database.`, message.channel);
+      if (message.text.indexOf(' ') != -1) {
+        text = message.text.substr(message.text.indexOf(' ') + 1);
       }
+
+      debug(`Received '${command}', is user owner: ${this.bot.owner.id == message.user}.`);
 
       if (this.commands[command]) {
         message.text = text;
         debug(`Redirecting message to ${command}`);
-        return this.commands[command].dispatchCommand(message, user);
+        debug(`List of comands are %o`, this.commands);
+        return this.commands[command].dispatchCommand(message, message.user);
       }
 
       // TODO: Think more on this.
       // Can someone also reach class properties from this?
       debug(`Dispatching command '${command}' for ${message.user}`);
-      this[command](text || '', user, message.channel);
+      this[command](text || '', message.user, message.channel);
     } catch (err) {
-      debug(`Command '${command} is failed to be dispatched.'`, err);
+      debug(`'${message.text}' is failed to be dispatched.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${user.slack.id}>, ${errorMessage}`, message.channel);
+      this.send(`<@${message.user}>, ${errorMessage}`, message.channel);
     }
   }
 
@@ -112,30 +94,30 @@ class Manager {
   /**
    * Starts the workday of the user.
    * @param {String} text
-   * @param {Object} user
+   * @param {String} slackId
    * @param {String} channel
    * @private
    */
-  async _start(text, user, channel) {
+  async _start(text, slackId, channel) {
     try {
       // We don't want to start a multiple workdays for the sameday.
       // Will throw error if not ended.
-      await Workday.isLastDayEnded(user);
+      await Workday.isLastDayEnded(slackId);
 
       let now = new Date();
       let newWorkday = new Workday({
-        user: user,
+        slackId: slackId,
         begin: now,
         intervals: [{begin: now, description: text}]
       });
 
       let workday = await newWorkday.save();
-      this.send(`<@${user.slack.id}>'s workday is just started with ${text}.`, channel);
+      this.send(`<@${slackId}>'s workday is just started with ${text}.`, channel);
     } catch (err) {
       console.log(err);
-      debug(`Error while starting ${user.slack.id}'s day.`, err);
+      debug(`Error while starting ${slackId}'s day.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${user.slack.id}>, ${errorMessage}`, channel);
+      this.send(`<@${slackId}>, ${errorMessage}`, channel);
     }
   }
 
@@ -143,19 +125,19 @@ class Manager {
   /**
    * Puts a break between work hours.
    * @param {String} text
-   * @param {Object} user
+   * @param {String} slackId
    * @param {String} channel
    * @private
    */
-  async _break(text, user, channel) {
+  async _break(text, slackId, channel) {
     try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(user);
+      let lastWorkday = await Workday.getLastWorkdayByUser(slackId);
       await lastWorkday.giveBreak();
-      this.send(`<@${user.slack.id}> is giving a break. (${text})`, channel);
+      this.send(`<@${slackId}> is giving a break. (${text})`, channel);
     } catch(err) {
-      debug(`Error while ${user.slack.id} is trying to give a break`, err);
+      debug(`Error while ${slackId} is trying to give a break`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${user.slack.id}>, ${errorMessage}`, channel);
+      this.send(`<@${slackId}>, ${errorMessage}`, channel);
     }
   }
 
@@ -164,19 +146,19 @@ class Manager {
    * Continues after break or ended day by overriding the 'end' field of
    * the workday.
    * @param {String} text
-   * @param {Object} user
+   * @param {String} slackId
    * @param {String} channel
    * @private
    */
-  async _continue(text, user, channel) {
+  async _continue(text, slackId, channel) {
     try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(user);
+      let lastWorkday = await Workday.getLastWorkdayByUser(slackId);
       await lastWorkday.continueDay(text);
-      this.send(`<@${user.slack.id}>'s workday continues with ${text}.`, channel);
+      this.send(`<@${slackId}>'s workday continues with ${text}.`, channel);
     } catch(err) {
-      debug(`Error while ${user.slack.id} is trying to continue work`, err);
+      debug(`Error while ${slackId} is trying to continue work`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${user.slack.id}>, ${errorMessage}`, channel);
+      this.send(`<@${slackId}>, ${errorMessage}`, channel);
     }
   }
 
@@ -184,19 +166,19 @@ class Manager {
   /**
    * Ends the workday of the user.
    * @param {String} text
-   * @param {Object} user
+   * @param {String} slackId
    * @param {String} channel
    * @private
    */
-  async _end(text, user, channel) {
+  async _end(text, slackId, channel) {
     try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(user);
+      let lastWorkday = await Workday.getLastWorkdayByUser(slackId);
       await lastWorkday.endDay();
-      this.send(`End of the workday for <@${user.slack.id}>.`, channel);
+      this.send(`End of the workday for <@${slackId}>.`, channel);
     } catch(err) {
-      debug(`Error while ${user.slack.id} is trying end the workday.`, err);
+      debug(`Error while ${slackId} is trying end the workday.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${user.slack.id}>, ${errorMessage}`, channel);
+      this.send(`<@${slackId}>, ${errorMessage}`, channel);
     }
   }
 

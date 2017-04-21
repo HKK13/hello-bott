@@ -15,12 +15,11 @@ const UserCommands = require('./libs/commands/user');
 
 mongoose.Promise = require('bluebird');
 mongoose.connect(process.env.DB_LINK || config.get('database.link'));
-const User = require('./models/user');
 
 Bot.once('connected', () => {
-  const manager = new Manager({
-    user: new UserCommands(Bot)
-  });
+  const manager = new Manager(Bot);
+
+  manager.listen();
 });
 
 /*

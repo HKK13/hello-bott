@@ -4,14 +4,12 @@ const _ = require('lodash');
 const User = require('../../models/user');
 const debug = require('debug')('userCommand');
 const config = require('config');
-const WebClient = require('@slack/client').WebClient;
 const LeakableBotError = require('../errors/leakableError');
 
 
 class UserCommand{
   constructor(bot) {
     this.bot = bot;
-    this.web = new WebClient(process.env.SLACK_TOKEN || config.get('slackToken'));
   }
 
 
@@ -100,7 +98,7 @@ class UserCommand{
       }
 
       let slackId = text.split('@')[1].split('>')[0];
-      let slackUser = (await this.web.users.info(slackId)).user;
+      let slackUser = (await this.bot.web.users.info(slackId)).user;
       debug(`Got user ${slackUser.id} from slack`);
 
       if(slackUser.real_name) {
@@ -125,7 +123,7 @@ class UserCommand{
 
       // User variable might not yet fit our schema.
       let callerId = user.is_owner ? user.id : user.slack.id;
-      this.bot.rtm.sendMessage(`<@${callerId}> created user ${text == 'me' ? 'self': text}`, channel);
+      this.bot.rtm.sendMessage(`<@${callerId}> created user <@${newUser.slack.id}>.`, channel);
     } catch(err) {
       debug(`Error while trying to create a user; ${text}.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message :
@@ -147,7 +145,7 @@ class UserCommand{
       if (slackId != user.slack.id && !user.isOwner && !user.isAdmin)
         throw new LeakableBotError('permission denied.');
 
-      let slackUser = (await this.web.users.info(slackId)).user;
+      let slackUser = (await this.bot.web.users.info(slackId)).user;
       debug(`Got user ${slackUser.id} from slack`);
 
       let dbUser = await User.findOne({'slack.id': slackUser.id});

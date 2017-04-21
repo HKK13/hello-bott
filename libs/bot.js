@@ -2,6 +2,7 @@
 
 const config = require('config');
 const RtmClient = require('@slack/client').RtmClient;
+const WebClient = require('@slack/client').WebClient;
 const rtm_events = require('@slack/client').RTM_EVENTS;
 const client_events = require('@slack/client').CLIENT_EVENTS;
 const EventEmitter = require('events');
@@ -14,6 +15,7 @@ class Bot extends EventEmitter{
     super();
     this.channels = {};
     this.id = '';
+    this.web = new WebClient(process.env.SLACK_TOKEN || config.get('slackToken'));
     this.rtm = new RtmClient(process.env.SLACK_TOKEN || config.get('slackToken'), {
       autoReconnect: true,
       logLevel: 'info'

@@ -12,7 +12,7 @@ let Workday = mongoose.Schema({
     }
   ],
   end: {type: Date},
-  user: {type: mongoose.Schema.ObjectId, ref: 'User', required: true, index: true},
+  slackId: {type: String, required: true, index: true},
   createdAt: {type: Date, default: Date.now}
 });
 
@@ -22,9 +22,8 @@ let Workday = mongoose.Schema({
  * @param {Object} user
  * @returns {Promise}
  */
-Workday.statics.isLastDayEnded = async function (user) {
-  let lastWorkday = await this.findOne({user: user._id})
-                              .sort({createdAt: -1});
+Workday.statics.isLastDayEnded = async function (id) {
+  let lastWorkday = await this.findOne({slackId: id}).sort({createdAt: -1});
 
   if (!lastWorkday) return Promise.resolve(true);
   if (!lastWorkday.end)
@@ -34,8 +33,8 @@ Workday.statics.isLastDayEnded = async function (user) {
 };
 
 
-Workday.statics.getLastWorkdayByUser = function (user) {
-  return this.findOne({user: user._id}).sort({createdAt: -1});
+Workday.statics.getLastWorkdayByUser = function (id) {
+  return this.findOne({slackId: id}).sort({createdAt: -1});
 };
 
 
