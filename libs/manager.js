@@ -40,16 +40,16 @@ class Manager {
 
       let messageText = message.text.trim();
 
-      //Public message, look for mention.
-      if (message.channel[0] === 'C' && message.text.indexOf(`<@${this.bot.id}>`) == 0) {
-        //Remove mention from message.
-        messageText = messageText.substr(messageText.indexOf(' ') + 1);
-      } else if (message.channel[0] !== 'D') {
-        //If finally is not a direct message.
+      //If not a public or a direct message.
+      if (message.channel[0] !== 'C' && message.channel[0] !== 'D') {
         return;
       }
 
+      if (message.text.indexOf(`<@${this.bot.id}>`) == 0)
+        messageText = messageText.substr(messageText.indexOf(' ') + 1);
+
       message.text = messageText;
+      debug(`Beginning to dispatch ${message.text}`);
       this.dispatchCommand(message);
     });
     debug('Listening for messages');
