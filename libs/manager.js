@@ -85,8 +85,10 @@ class Manager {
       }
 
 
-      // TODO: Think more on this.
+      // TODO: Think more on this. Seems a possible info leak/remote exec(DUH..).
       // Can someone also reach class properties from this?
+      // We don't want eternal conditional statements but also
+      // don't want anyone to receive bot token for example.
       debug(`Dispatching command '${command}' for ${message.user}`);
       this[command](text , message.user, message.channel);
     } catch (err) {
