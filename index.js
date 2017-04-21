@@ -11,7 +11,6 @@ const Bot = require('./libs/bot');
 const config = require('config');
 const mongoose = require('mongoose');
 const Manager = require('./libs/manager');
-const UserCommands = require('./libs/commands/user');
 
 mongoose.Promise = require('bluebird');
 mongoose.connect(process.env.DB_LINK || config.get('database.link'));

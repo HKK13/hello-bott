@@ -4,7 +4,6 @@ const _ = require('lodash');
 const config = require('config');
 const debug = require('debug')('manager');
 const Workday = require('../models/workday');
-const User = require('../models/user');
 const LeakableBotError = require('./errors/leakableError');
 
 

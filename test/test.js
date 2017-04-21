@@ -6,11 +6,9 @@ let mongoose = require('mongoose');
 mongoose.Promise = Promise;
 let assert = chai.assert;
 
-let User = require('../models/user');
 let Workday = require('../models/workday');
 
 let Manager = require('../libs/manager');
-let UserModule = require('../libs/commands/user');
 let TestModule = require('./modules/module');
 let Bot = require('./mock/bot');
 
@@ -78,7 +76,6 @@ describe('Manager', () => {
 
   it('should construct manager with the bot and modules.', (done) => {
     manager = new Manager(bot, {
-      'user': new UserModule(bot),
       'test': new TestModule(bot)
     });
 
