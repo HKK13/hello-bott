@@ -39,8 +39,12 @@ class Manager {
 
       let messageText = message.text.trim();
 
-      //If not a public or a direct message.
-      if (message.channel[0] !== 'C' && message.channel[0] !== 'D') {
+      console.log(message.user, this.bot.id);
+
+      //If not a public or a direct message or somehow bot is mentioning itself.
+      if ((message.channel[0] !== 'C' && message.channel[0] !== 'D')
+          || message.user === this.bot.id) {
+
         return;
       }
 
