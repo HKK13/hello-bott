@@ -37,10 +37,6 @@ class Manager {
     this.bot.on('message', (message) => {
       debug('Message: %o', message);
 
-      let messageText = message.text.trim();
-
-      console.log(message.user, this.bot.id);
-
       //If not a public or a direct message or somehow bot is mentioning itself.
       if ((message.channel[0] !== 'C' && message.channel[0] !== 'D')
           || message.user === this.bot.id) {
@@ -48,7 +44,9 @@ class Manager {
         return;
       }
 
-      if (message.text.indexOf(`<@${this.bot.id}>`) == 0)
+      let messageText = message.text.trim();
+
+      if (messageText.indexOf(`<@${this.bot.id}>`) == 0)
         messageText = messageText.substr(messageText.indexOf(' ') + 1);
 
       message.text = messageText;
@@ -66,15 +64,19 @@ class Manager {
    */
   async dispatchCommand(message) {
     try {
-      let command = '_' + (message.text.substr(0, message.text.indexOf(' ')) || message.text);
+      // Get first word as command, pass whole if single word.
+      let command = '_' + (message.text.substr(0, message.text.indexOf(' ')) || message.text)
+          .toLowerCase();
       let text = '';
 
+      // Remove command before dispatching remaining text.
       if (message.text.indexOf(' ') != -1) {
         text = message.text.substr(message.text.indexOf(' ') + 1);
       }
 
       debug(`Received '${command}', is user owner: ${this.bot.owner.id == message.user}.`);
 
+      // Look if command exists in plugged in modules.
       if (this.commands[command]) {
         message.text = text;
         debug(`Redirecting message to ${command}`);
@@ -82,10 +84,11 @@ class Manager {
         return this.commands[command].dispatchCommand(message, message.user);
       }
 
+
       // TODO: Think more on this.
       // Can someone also reach class properties from this?
       debug(`Dispatching command '${command}' for ${message.user}`);
-      this[command](text || '', message.user, message.channel);
+      this[command](text , message.user, message.channel);
     } catch (err) {
       debug(`'${message.text}' is failed to be dispatched.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
@@ -105,6 +108,9 @@ class Manager {
     try {
       // We don't want to start a multiple workdays for the sameday.
       // Will throw error if not ended.
+      // However user still is able to start a workday in same day,
+      // Problematic? Don't think so because evaluation will still be based
+      // on times worked.
       await Workday.isLastDayEnded(slackId);
 
       let now = new Date();
@@ -126,7 +132,7 @@ class Manager {
 
 
   /**
-   * Puts a break between work hours.
+   * Gives a break on last workday interval.
    * @param {String} text
    * @param {String} slackId
    * @param {String} channel
