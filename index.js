@@ -3,11 +3,7 @@
 /*
  * Libraries
  */
-const Koa = require('koa');
-const Router = require('koa-router');
 const logger = require('koa-logger');
-const bodyParser = require('koa-bodyparser');
-const Bot = require('./libs/bot');
 const config = require('config');
 const mongoose = require('mongoose');
 const Manager = require('./libs/manager');
@@ -20,24 +16,5 @@ Bot.once('connected', () => {
 
   manager.listen();
 });
-
-/*
- * Instance objects.
- */
-const app = new Koa();
-const router = new Router();
-
-
-/*
- * App configurations.
- */
-app
-  .use(logger())
-  .use(router.routes())
-  .use(router.allowedMethods())
-  .use(bodyParser());
-
-
-app.listen(3000);
 
 module.exports = app;
