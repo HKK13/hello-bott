@@ -9,19 +9,21 @@ const LeakableBotError = require('./errors/leakableError');
 const Bot = require('./libs/bot');
 
 
-class Manager extends EventEmitter{
+class Manager{
   constructor() {
-    this.commands = new Set(); // Maybe use Set?
+    this.commands = new Map(); // Maybe use Set?
+    this.dispatchCommand = this.dispatchCommand.bind(this);
+    Bot.on('message', this.dispatchCommand);
     debug('Manager created.');
   }
 
 
   /**
-   * Registers event name and fires if received registered command.
+   * Registers command name and call the corresponding command.
    * @param event
    */
-  register(event) {
-    this.commands.add(event);
+  registerCommand(command, dispatchMethod) {
+    this.commands.set('_' + command, dispatchMethod);
   }
 
 
