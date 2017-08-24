@@ -15,13 +15,14 @@ class Bot extends EventEmitter{
     super();
     this.channels = {};
     this.id = '';
-    this.web = new WebClient(process.env.SLACK_TOKEN || config.get('slackToken'));
-    this.rtm = new RtmClient(process.env.SLACK_TOKEN || config.get('slackToken'), {
+    this.web = new WebClient(process.env.SLACK_TOKEN || config.get('slack.token'));
+    this.rtm = new RtmClient(process.env.SLACK_TOKEN || config.get('slack.token'), {
       autoReconnect: true,
       logLevel: 'info'
     });
-
-    this.once('authenticated', this.authenticated);
+    this._listenMentions = this._listenMentions.bind(this);
+    this.decorateMessage = this.decorateMessage.bind(this);
+    this.authenticated = this.authenticated.bind(this);
 
     this._initializeEvents();
     this.rtm.start();
@@ -29,12 +30,12 @@ class Bot extends EventEmitter{
   }
 
   _initializeEvents() {
-    this.rtm.on(client_events.RTM.AUTHENTICATED, data => this.emit('authenticated', data));
+    this.rtm.on(client_events.RTM.AUTHENTICATED, this.authenticated);
     this.rtm.on(client_events.RTM.RTM_CONNECTION_OPENED, () =>  {
       debug('Bot connected.');
       this.emit('connected');
     });
-    this.rtm.on(rtm_events.MESSAGE, this._listenMentions());
+    this.rtm.on(rtm_events.MESSAGE, this._listenMentions);
     this.rtm.on(rtm_events.MESSAGE_CHANGED, message => this.emit('messageChanges', message));
     this.rtm.on(rtm_events.MESSAGE_DELETED, message => this.emit('messageDeleted', message));
     this.rtm.on(rtm_events.ATTEMPTING_RECONNECT, () => debug('Reconnecting'));
@@ -47,19 +48,23 @@ class Bot extends EventEmitter{
 
     //If not a public or a direct message or somehow bot is mentioning itself.
     if ((message.channel[0] !== 'C' && message.channel[0] !== 'D')
-      || message.user === Bot.id) {
+      || message.user === this.id) {
 
       return;
     }
 
     let messageText = message.text.trim();
-
-    if (messageText.indexOf(`<@${Bot.id}>`) == 0)
-      messageText = messageText.substr(messageText.indexOf(' ') + 1);
+    messageText = messageText.substr(messageText.indexOf(' ') + 1);
 
     message.text = messageText;
-    debug(`Beginning to dispatch ${message.text}`);
-    this.emit('message', message);
+
+    debug(`Emit message to manager: ${message.text}`);
+    this.emit('message', this.decorateMessage(message));
+  }
+
+  decorateMessage(message) {
+    message.reply = this.rtm.sendMessage.bind(this.rtm);
+    return message;
   }
 
   authenticated(data) {
