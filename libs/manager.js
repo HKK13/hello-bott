@@ -4,9 +4,9 @@ const _ = require('lodash');
 const config = require('config');
 const debug = require('debug')('manager');
 const Workday = require('../models/workday');
-const EventEmitter = require('events');
 const LeakableBotError = require('./errors/leakableError');
-const Bot = require('./libs/bot');
+const Bot = require('./bot');
+const helpers = require('./Helpers');
 
 
 class Manager{
@@ -34,37 +34,23 @@ class Manager{
    */
   async dispatchCommand(message) {
     try {
-      // Get first word as command, pass whole if single word.
-      let command = '_' + (message.text.substr(0, message.text.indexOf(' ')) || message.text)
-          .toLowerCase();
-      let text = '';
-
-      // Remove command before dispatching remaining text.
-      if (message.text.indexOf(' ') != -1) {
-        text = message.text.substr(message.text.indexOf(' ') + 1);
-      }
-
+      let {command, text} = helpers.extractCommand(message);
       debug(`Received '${command}', is user owner: ${Bot.owner.id == message.user}.`);
 
       // Look if command exists in plugged in modules.
-      if (this.commands[command]) {
+      if (this.commands.has(command)) {
         message.text = text;
         debug(`Redirecting message to ${command}`);
         debug(`List of comands are %o`, this.commands);
-        return this.commands[command].dispatchCommand(message, message.user);
+        return this.commands[command](message, message.user);
       }
 
-
-      // TODO: Think more on this. Seems a possible info leak/remote exec(DUH..).
-      // Can someone also reach class properties from this?
-      // We don't want eternal conditional statements but also
-      // don't want anyone to receive bot token for example.
       debug(`Dispatching command '${command}' for ${message.user}`);
-      this[command](text , message.user, message.channel);
+      this[command](text, message);
     } catch (err) {
       debug(`'${message.text}' is failed to be dispatched.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${message.user}>, ${errorMessage}`, message.channel);
+      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
     }
   }
 
@@ -72,33 +58,32 @@ class Manager{
   /**
    * Starts the workday of the user.
    * @param {String} text
-   * @param {String} slackId
-   * @param {String} channel
+   * @param {Object} message
    * @private
    */
-  async _start(text, slackId, channel) {
+  async _start(text, message) {
     try {
       // We don't want to start a multiple workdays for the sameday.
       // Will throw error if not ended.
-      // However user still is able to start a workday in same day,
+      // However user still is able to start a workday if the previous one is ended
+      // in same day,
       // Problematic? Don't think so because evaluation will still be based
       // on times worked.
-      await Workday.isLastDayEnded(slackId);
+      await Workday.isLastDayEnded(message.user);
 
       let now = new Date();
       let newWorkday = new Workday({
-        slackId: slackId,
+        slackId: message.user,
         begin: now,
         intervals: [{begin: now, description: text}]
       });
 
       let workday = await newWorkday.save();
-      this.send(`<@${slackId}>'s workday is just started with ${text}.`, channel);
+      message.reply(`<@${message.user}>'s workday is just started with ${text}.`, message.channel);
     } catch (err) {
-      console.log(err);
-      debug(`Error while starting ${slackId}'s day.`, err);
+      debug(`Error while starting ${message.user}'s day.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${slackId}>, ${errorMessage}`, channel);
+      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
     }
   }
 
@@ -110,15 +95,15 @@ class Manager{
    * @param {String} channel
    * @private
    */
-  async _break(text, slackId, channel) {
+  async _break(text, message) {
     try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(slackId);
+      let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
       await lastWorkday.giveBreak();
-      this.send(`<@${slackId}> is giving a break. (${text})`, channel);
+      message.reply(`<@${message.user}> is giving a break. (${text})`, message.channel);
     } catch(err) {
-      debug(`Error while ${slackId} is trying to give a break`, err);
+      debug(`Error while ${message.user} is trying to give a break`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${slackId}>, ${errorMessage}`, channel);
+      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
     }
   }
 
@@ -131,15 +116,15 @@ class Manager{
    * @param {String} channel
    * @private
    */
-  async _continue(text, slackId, channel) {
+  async _continue(text, message) {
     try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(slackId);
+      let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
       await lastWorkday.continueDay(text);
-      this.send(`<@${slackId}>'s workday continues with ${text}.`, channel);
+      message.reply(`<@${message.user}>'s workday continues with ${text}.`, message.channel);
     } catch(err) {
-      debug(`Error while ${slackId} is trying to continue work`, err);
+      debug(`Error while ${message.user} is trying to continue work`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${slackId}>, ${errorMessage}`, channel);
+      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
     }
   }
 
@@ -151,27 +136,17 @@ class Manager{
    * @param {String} channel
    * @private
    */
-  async _end(text, slackId, channel) {
+  async _end(text, message) {
     try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(slackId);
+      let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
       await lastWorkday.endDay();
-      this.send(`End of the workday for <@${slackId}>.`, channel);
+      message.reply(`End of the workday for <@${message.user}>.`, message.channel);
     } catch(err) {
-      debug(`Error while ${slackId} is trying end the workday.`, err);
+      debug(`Error while ${message.user} is trying end the workday.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.send(`<@${slackId}>, ${errorMessage}`, channel);
+      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
     }
-  }
-
-
-  /**
-   * Say something to channel.
-   * @param {String} message
-   * @param {String} channel
-   */
-  send(message, channel) {
-    Bot.rtm.sendMessage(message, Bot.channels[channel] || channel);
   }
 }
 
-module.exports = Manager;
+module.exports = new Manager();
