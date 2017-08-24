@@ -34,12 +34,32 @@ class Bot extends EventEmitter{
       debug('Bot connected.');
       this.emit('connected');
     });
-    this.rtm.on(rtm_events.MESSAGE, message => this.emit('message', message));
+    this.rtm.on(rtm_events.MESSAGE, this._listenMentions());
     this.rtm.on(rtm_events.MESSAGE_CHANGED, message => this.emit('messageChanges', message));
     this.rtm.on(rtm_events.MESSAGE_DELETED, message => this.emit('messageDeleted', message));
     this.rtm.on(rtm_events.ATTEMPTING_RECONNECT, () => debug('Reconnecting'));
     this.rtm.on(rtm_events.WS_ERROR, error => debug(`Error: ${error}`));
     debug('Events created.');
+  }
+
+  _listenMentions(message) {
+    debug('Message: %o', message);
+
+    //If not a public or a direct message or somehow bot is mentioning itself.
+    if ((message.channel[0] !== 'C' && message.channel[0] !== 'D')
+      || message.user === Bot.id) {
+
+      return;
+    }
+
+    let messageText = message.text.trim();
+
+    if (messageText.indexOf(`<@${Bot.id}>`) == 0)
+      messageText = messageText.substr(messageText.indexOf(' ') + 1);
+
+    message.text = messageText;
+    debug(`Beginning to dispatch ${message.text}`);
+    this.emit('message', message);
   }
 
   authenticated(data) {

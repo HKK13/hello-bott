@@ -4,56 +4,24 @@ const _ = require('lodash');
 const config = require('config');
 const debug = require('debug')('manager');
 const Workday = require('../models/workday');
+const EventEmitter = require('events');
 const LeakableBotError = require('./errors/leakableError');
+const Bot = require('./libs/bot');
 
 
-class Manager {
-  /**
-   * @Constructor
-   * @param {Object} commandModules
-   */
-  constructor(bot, commandModules) {
-    this.bot = bot;
-    this.commands = {}; // Maybe use Set?
+class Manager extends EventEmitter{
+  constructor() {
+    this.commands = new Set(); // Maybe use Set?
     debug('Manager created.');
-
-    if (commandModules) {
-      _.forEach(commandModules, (module, key) => {
-        if (module.dispatchCommand) {
-          this.commands['_' + key] = module;
-          debug(`Add module '${key}'.`);
-        } else {
-          throw new Error('Module does not have dispatchCommand() method.');
-        }
-      });
-    }
   }
 
 
   /**
-   * Listens for mentions or direct messages to the bot.
+   * Registers event name and fires if received registered command.
+   * @param event
    */
-  listen() {
-    this.bot.on('message', (message) => {
-      debug('Message: %o', message);
-
-      //If not a public or a direct message or somehow bot is mentioning itself.
-      if ((message.channel[0] !== 'C' && message.channel[0] !== 'D')
-          || message.user === this.bot.id) {
-
-        return;
-      }
-
-      let messageText = message.text.trim();
-
-      if (messageText.indexOf(`<@${this.bot.id}>`) == 0)
-        messageText = messageText.substr(messageText.indexOf(' ') + 1);
-
-      message.text = messageText;
-      debug(`Beginning to dispatch ${message.text}`);
-      this.dispatchCommand(message);
-    });
-    debug('Listening for messages');
+  register(event) {
+    this.commands.add(event);
   }
 
 
@@ -74,7 +42,7 @@ class Manager {
         text = message.text.substr(message.text.indexOf(' ') + 1);
       }
 
-      debug(`Received '${command}', is user owner: ${this.bot.owner.id == message.user}.`);
+      debug(`Received '${command}', is user owner: ${Bot.owner.id == message.user}.`);
 
       // Look if command exists in plugged in modules.
       if (this.commands[command]) {
@@ -200,7 +168,7 @@ class Manager {
    * @param {String} channel
    */
   send(message, channel) {
-    this.bot.rtm.sendMessage(message, this.bot.channels[channel] || channel);
+    Bot.rtm.sendMessage(message, Bot.channels[channel] || channel);
   }
 }
 
