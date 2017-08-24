@@ -5,7 +5,7 @@ Slack logging utility bot for work history. For now.
 ## Getting Started
 
 -  Create default.json under the config folder.
-  -  Add `slackToken`
+  -  Add `slack.token`
   -  Add `database.link` which is a mongodb link.
 
 -  npm install
