@@ -24,6 +24,7 @@ class Manager{
    */
   registerCommand(command, dispatchMethod) {
     this.commands.set('_' + command, dispatchMethod);
+    debug(`Registered ${command} into commands.`);
   }
 
 
@@ -41,8 +42,8 @@ class Manager{
       if (this.commands.has(command)) {
         message.text = text;
         debug(`Redirecting message to ${command}`);
-        debug(`List of comands are %o`, this.commands);
-        return this.commands[command](message, message.user);
+        debug(`List of comands are %o`, this.commands.keys());
+        return this.commands.get(command)(message);
       }
 
       debug(`Dispatching command '${command}' for ${message.user}`);
