@@ -17,7 +17,7 @@ class ModuleCore {
    * Calls the corresponding command's or module's command function.
    * Throws and responds with an error when no corresponding command exists.
    *
-   * @param {String} message
+   * @param {Object} message
    */
   async dispatchCommand(message) {
     let {command, text} = this.parseCommand(message);
@@ -28,23 +28,21 @@ class ModuleCore {
       await this.decideDispatch(command, text, message);
     } catch (err) {
       debug(`'${message.text}' is failed to be dispatched.`, err);
-      message.reply(err, message);
+      message.throw(err);
     }
   }
 
-  /**
-   * Extracts the command from the message text and returns them.
-   * @param {String} message
-   * @returns {command, text}
-   */
+
   parseCommand(message) {
-    return helpers.extractCommand(message);
+    return message.extractCommand();
   }
 
+
   /**
-   * Decides command dispatch.
-   * @param command
-   * @param message
+   * Command dispatch logic. Decides where should that command go.
+   * @param {String} command
+   * @param {String} text
+   * @param {Object} message
    * @returns {*}
    */
   async decideDispatch (command, text, message) {

@@ -28,8 +28,7 @@ class Manager{
 
   /**
    * Calls the corresponding command's function.
-   * @param {String} message
-   * @private
+   * @param {Object} message
    */
   async dispatchCommand(message) {
     try {
@@ -77,8 +76,7 @@ class Manager{
   /**
    * Gives a break on last workday interval.
    * @param {String} text
-   * @param {String} slackId
-   * @param {String} channel
+   * @param {Object} message
    * @private
    */
   async _break(text, message) {
@@ -92,8 +90,7 @@ class Manager{
    * Continues after break or ended day by overriding the 'end' field of
    * the workday.
    * @param {String} text
-   * @param {String} slackId
-   * @param {String} channel
+   * @param {Object} message
    * @private
    */
   async _continue(text, message) {
@@ -106,8 +103,7 @@ class Manager{
   /**
    * Ends the workday of the user.
    * @param {String} text
-   * @param {String} slackId
-   * @param {String} channel
+   * @param {Object} message
    * @private
    */
   async _end(text, message) {
