@@ -46,7 +46,7 @@ class Manager{
       }
 
       debug(`Dispatching command '${command}' for ${message.user}`);
-      this[command](text, message);
+      await this[command](text, message);
     } catch (err) {
       debug(`'${message.text}' is failed to be dispatched.`, err);
       let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
@@ -62,29 +62,17 @@ class Manager{
    * @private
    */
   async _start(text, message) {
-    try {
-      // We don't want to start a multiple workdays for the sameday.
-      // Will throw error if not ended.
-      // However user still is able to start a workday if the previous one is ended
-      // in same day,
-      // Problematic? Don't think so because evaluation will still be based
-      // on times worked.
-      await Workday.isLastDayEnded(message.user);
+    await Workday.isLastDayEnded(message.user);
 
-      let now = new Date();
-      let newWorkday = new Workday({
-        slackId: message.user,
-        begin: now,
-        intervals: [{begin: now, description: text}]
-      });
+    let now = new Date();
+    let newWorkday = new Workday({
+      slackId: message.user,
+      begin: now,
+      intervals: [{begin: now, description: text}]
+    });
 
-      let workday = await newWorkday.save();
-      message.reply(`<@${message.user}>'s workday is just started with ${text}.`, message.channel);
-    } catch (err) {
-      debug(`Error while starting ${message.user}'s day.`, err);
-      let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
-    }
+    let workday = await newWorkday.save();
+    message.reply(`<@${message.user}>'s workday is just started with ${text}.`, message.channel);
   }
 
 
@@ -96,15 +84,9 @@ class Manager{
    * @private
    */
   async _break(text, message) {
-    try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
-      await lastWorkday.giveBreak();
-      message.reply(`<@${message.user}> is giving a break. (${text})`, message.channel);
-    } catch(err) {
-      debug(`Error while ${message.user} is trying to give a break`, err);
-      let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
-    }
+    let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
+    await lastWorkday.giveBreak();
+    message.reply(`<@${message.user}> is giving a break. (${text})`, message.channel);
   }
 
 
@@ -117,15 +99,9 @@ class Manager{
    * @private
    */
   async _continue(text, message) {
-    try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
-      await lastWorkday.continueDay(text);
-      message.reply(`<@${message.user}>'s workday continues with ${text}.`, message.channel);
-    } catch(err) {
-      debug(`Error while ${message.user} is trying to continue work`, err);
-      let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
-    }
+    let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
+    await lastWorkday.continueDay(text);
+    message.reply(`<@${message.user}>'s workday continues with ${text}.`, message.channel);
   }
 
 
@@ -137,15 +113,9 @@ class Manager{
    * @private
    */
   async _end(text, message) {
-    try {
-      let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
-      await lastWorkday.endDay();
-      message.reply(`End of the workday for <@${message.user}>.`, message.channel);
-    } catch(err) {
-      debug(`Error while ${message.user} is trying end the workday.`, err);
-      let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
-    }
+    let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
+    await lastWorkday.endDay();
+    message.reply(`End of the workday for <@${message.user}>.`, message.channel);
   }
 }
 
