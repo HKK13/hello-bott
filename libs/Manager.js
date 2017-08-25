@@ -4,7 +4,6 @@ const _ = require('lodash');
 const config = require('config');
 const debug = require('debug')('manager');
 const Workday = require('../models/Workday');
-const LeakableBotError = require('./errors/LeakableError');
 const Bot = require('./Bot');
 const helpers = require('./Helpers');
 
@@ -50,8 +49,7 @@ class Manager{
       await this[command](text, message);
     } catch (err) {
       debug(`'${message.text}' is failed to be dispatched.`, err);
-      let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      message.reply(`<@${message.user}>, ${errorMessage}`, message.channel);
+      message.reply(err, message);
     }
   }
 
@@ -73,7 +71,7 @@ class Manager{
     });
 
     let workday = await newWorkday.save();
-    message.reply(`<@${message.user}>'s workday is just started with ${text}.`, message.channel);
+    message.reply(`<@${message.user}>'s workday is just started with ${text}.`, message);
   }
 
 
@@ -87,7 +85,7 @@ class Manager{
   async _break(text, message) {
     let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
     await lastWorkday.giveBreak();
-    message.reply(`<@${message.user}> is giving a break. (${text})`, message.channel);
+    message.reply(`<@${message.user}> is giving a break. (${text})`, message);
   }
 
 
@@ -102,7 +100,7 @@ class Manager{
   async _continue(text, message) {
     let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
     await lastWorkday.continueDay(text);
-    message.reply(`<@${message.user}>'s workday continues with ${text}.`, message.channel);
+    message.reply(`<@${message.user}>'s workday continues with ${text}.`, message);
   }
 
 
@@ -116,7 +114,7 @@ class Manager{
   async _end(text, message) {
     let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
     await lastWorkday.endDay();
-    message.reply(`End of the workday for <@${message.user}>.`, message.channel);
+    message.reply(`End of the workday for <@${message.user}>.`, message);
   }
 }
 

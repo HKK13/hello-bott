@@ -1,12 +1,18 @@
 'use strict';
 
 const _ = require('lodash');
-const debug = require('debug');
 const LeakableBotError = require('./errors/LeakableError');
 const helpers = require('./Helpers');
+const debug = require('debug');
 
 
 class ModuleCore {
+
+  constructor() {
+    debug('Command module constructed.');
+    this.dispatchCommand = this.dispatchCommand.bind(this);
+  }
+
   /**
    * Calls the corresponding command's or module's command function.
    * Throws and responds with an error when no corresponding command exists.
@@ -14,15 +20,15 @@ class ModuleCore {
    * @param {String} message
    */
   async dispatchCommand(message) {
+    let {command, text} = this.parseCommand(message);
+
     try {
-      let {command, text} = this.parseCommand();
       debug(`Dispatching command '${command}' for ${message.user}`);
 
       await this.decideDispatch(command, text, message);
     } catch (err) {
       debug(`'${message.text}' is failed to be dispatched.`, err);
-      let errorMessage = err.name == 'LeakableBotError' ? err.message : 'problems captain!';
-      this.bot.send(`<@${message.user}>, ${errorMessage}`, message.channel);
+      message.reply(err, message);
     }
   }
 

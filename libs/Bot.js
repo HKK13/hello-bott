@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 const config = require('config');
 const RtmClient = require('@slack/client').RtmClient;
@@ -10,7 +10,7 @@ const debug = require('debug')('bot');
 const _ = require('lodash');
 
 
-class Bot extends EventEmitter{
+class Bot extends EventEmitter {
   constructor() {
     super();
     this.channels = {};
@@ -63,7 +63,7 @@ class Bot extends EventEmitter{
   }
 
   decorateMessage(message) {
-    message.reply = this.rtm.sendMessage.bind(this.rtm);
+    message.reply = this.reply.bind(this);
     return message;
   }
 
@@ -87,6 +87,26 @@ class Bot extends EventEmitter{
 
     let currentChannels = Object.keys(this.channels).join(', ');
     debug(`Logged in as ${this.data.self.name} of team ${this.data.team.name}, current channels are ${currentChannels}.`);
+  }
+
+  reply (text, message) {
+
+    let returnText = '';
+    let channel = message.channel;
+    let error = text instanceof Error ? text : null;
+
+    if (error) {
+      if (error.name == 'TypeError')
+        returnText = `<@${message.user}>, command '${command}' does not exist.`;
+      else if (error.name == 'LeakableBotError')
+        returnText = `<@${message.user}>, ${error.message}`;
+      else
+        returnText = 'Problems captain!';
+    } else {
+      returnText = text;
+    }
+
+    this.rtm.sendMessage(returnText, channel);
   }
 }
 
