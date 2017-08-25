@@ -1,6 +1,7 @@
 'use strict';
 
 const config = require('config');
+const Message = require('./Message');
 const RtmClient = require('@slack/client').RtmClient;
 const WebClient = require('@slack/client').WebClient;
 const rtm_events = require('@slack/client').RTM_EVENTS;
@@ -57,13 +58,14 @@ class Bot extends EventEmitter {
     messageText = messageText.substr(messageText.indexOf(' ') + 1);
 
     message.text = messageText;
+    let messageObject = new Message(message);
 
-    debug(`Emit message to manager: ${message.text}`);
-    this.emit('message', this.decorateMessage(message));
+    debug(`Emit message to manager: ${messageObject}`);
+    this.emit('message', this.decorateMessage(messageObject));
   }
 
   decorateMessage(message) {
-    message.reply = this.reply.bind(this);
+    message.send = this.rtm.sendMessage.bind(this.rtm);
     return message;
   }
 
@@ -87,26 +89,6 @@ class Bot extends EventEmitter {
 
     let currentChannels = Object.keys(this.channels).join(', ');
     debug(`Logged in as ${this.data.self.name} of team ${this.data.team.name}, current channels are ${currentChannels}.`);
-  }
-
-  reply (text, message) {
-
-    let returnText = '';
-    let channel = message.channel;
-    let error = text instanceof Error ? text : null;
-
-    if (error) {
-      if (error.name == 'TypeError')
-        returnText = `<@${message.user}>, command '${command}' does not exist.`;
-      else if (error.name == 'LeakableBotError')
-        returnText = `<@${message.user}>, ${error.message}`;
-      else
-        returnText = 'Problems captain!';
-    } else {
-      returnText = text;
-    }
-
-    this.rtm.sendMessage(returnText, channel);
   }
 }
 

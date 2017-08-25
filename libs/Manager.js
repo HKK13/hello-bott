@@ -5,7 +5,6 @@ const config = require('config');
 const debug = require('debug')('manager');
 const Workday = require('../models/Workday');
 const Bot = require('./Bot');
-const helpers = require('./Helpers');
 
 
 class Manager{
@@ -34,7 +33,7 @@ class Manager{
    */
   async dispatchCommand(message) {
     try {
-      let {command, text} = helpers.extractCommand(message);
+      let {command, text} = message.extractCommand();
       debug(`Received '${command}', is user owner: ${Bot.owner.id == message.user}.`);
 
       // Look if command exists in plugged in modules.
@@ -49,7 +48,7 @@ class Manager{
       await this[command](text, message);
     } catch (err) {
       debug(`'${message.text}' is failed to be dispatched.`, err);
-      message.reply(err, message);
+      message.throw(err);
     }
   }
 
@@ -71,7 +70,7 @@ class Manager{
     });
 
     let workday = await newWorkday.save();
-    message.reply(`<@${message.user}>'s workday is just started with ${text}.`, message);
+    message.reply(`<@${message.user}>'s workday is just started with ${text}.`);
   }
 
 
@@ -85,7 +84,7 @@ class Manager{
   async _break(text, message) {
     let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
     await lastWorkday.giveBreak();
-    message.reply(`<@${message.user}> is giving a break. (${text})`, message);
+    message.reply(`<@${message.user}> is giving a break. (${text})`);
   }
 
 
@@ -100,7 +99,7 @@ class Manager{
   async _continue(text, message) {
     let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
     await lastWorkday.continueDay(text);
-    message.reply(`<@${message.user}>'s workday continues with ${text}.`, message);
+    message.reply(`<@${message.user}>'s workday continues with ${text}.`);
   }
 
 
