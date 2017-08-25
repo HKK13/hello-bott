@@ -1,8 +1,6 @@
 'use strict';
 
 const _ = require('lodash');
-const LeakableBotError = require('./errors/LeakableError');
-const helpers = require('./Helpers');
 const debug = require('debug');
 
 
