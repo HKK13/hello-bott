@@ -8,6 +8,7 @@ const Bot = require('./Bot');
 
 
 class Manager{
+
   constructor() {
     this.commands = new Map(); // Maybe use Set?
     this.dispatchCommand = this.dispatchCommand.bind(this);

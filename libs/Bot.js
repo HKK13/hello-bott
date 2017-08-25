@@ -12,15 +12,18 @@ const _ = require('lodash');
 
 
 class Bot extends EventEmitter {
+
   constructor() {
     super();
     this.channels = {};
     this.id = '';
+
     this.web = new WebClient(process.env.SLACK_TOKEN || config.get('slack.token'));
     this.rtm = new RtmClient(process.env.SLACK_TOKEN || config.get('slack.token'), {
       autoReconnect: true,
       logLevel: 'info'
     });
+
     this._listenMentions = this._listenMentions.bind(this);
     this.decorateMessage = this.decorateMessage.bind(this);
     this.authenticated = this.authenticated.bind(this);
@@ -30,6 +33,11 @@ class Bot extends EventEmitter {
     debug('Bot created.');
   }
 
+
+  /**
+   * Initializes slack events with class events.
+   * @private
+   */
   _initializeEvents() {
     this.rtm.on(client_events.RTM.AUTHENTICATED, this.authenticated);
     this.rtm.on(client_events.RTM.RTM_CONNECTION_OPENED, () =>  {
@@ -44,6 +52,12 @@ class Bot extends EventEmitter {
     debug('Events created.');
   }
 
+
+  /**
+   * Listens mentions in messages, if mentioned delivers them to the manager.
+   * @param {Object} message
+   * @private
+   */
   _listenMentions(message) {
     debug('Message: %o', message);
 
@@ -64,11 +78,22 @@ class Bot extends EventEmitter {
     this.emit('message', this.decorateMessage(messageObject));
   }
 
+
+  /**
+   * Decorates message class object with a send method.
+   * @param message
+   * @returns {*}
+   */
   decorateMessage(message) {
     message.send = this.rtm.sendMessage.bind(this.rtm);
     return message;
   }
 
+
+  /**
+   * Stores owner and bot's ids and available channels' lists.
+   * @param data
+   */
   authenticated(data) {
     this.data = data;
 
