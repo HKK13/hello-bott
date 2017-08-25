@@ -3,9 +3,9 @@
 const _ = require('lodash');
 const config = require('config');
 const debug = require('debug')('manager');
-const Workday = require('../models/workday');
-const LeakableBotError = require('./errors/leakableError');
-const Bot = require('./bot');
+const Workday = require('../models/Workday');
+const LeakableBotError = require('./errors/LeakableError');
+const Bot = require('./Bot');
 const helpers = require('./Helpers');
 
 

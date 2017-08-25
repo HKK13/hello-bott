@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const LeakableBotError = require('../libs/errors/leakableError');
+const LeakableBotError = require('../libs/errors/LeakableError');
 
 let Workday = mongoose.Schema({
   begin: {type: Date, default: Date.now},

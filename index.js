@@ -6,8 +6,8 @@
 const logger = require('koa-logger');
 const config = require('config');
 const mongoose = require('mongoose');
-const Manager = require('./libs/manager');
-const Bot = require('./libs/bot');
+const Manager = require('./libs/Manager');
+const Bot = require('./libs/Bot');
 const ModuleCore = require('./libs/ModuleCore');
 
 mongoose.Promise = require('bluebird');

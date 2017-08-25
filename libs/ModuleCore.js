@@ -2,7 +2,7 @@
 
 const _ = require('lodash');
 const debug = require('debug');
-const LeakableBotError = require('./errors/leakableError');
+const LeakableBotError = require('./errors/LeakableError');
 const helpers = require('./Helpers');
 
 
