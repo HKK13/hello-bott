@@ -1,3 +1,5 @@
+const debug = require('debug')('message');
+
 
 class Message {
 
@@ -6,6 +8,7 @@ class Message {
     this.text = slackMessage.text;
     this.command = '';
     this.user = slackMessage.user;
+    debug('Message constructed with', slackMessage);
   }
 
 
@@ -15,6 +18,7 @@ class Message {
    */
   reply(text) {
     this.send(text, this.messageObject.channel);
+    debug(`Message; ${text} sent.`);
   }
 
 
@@ -37,6 +41,7 @@ class Message {
     this.command = command;
     this.text = text;
 
+    debug('Command and Text extracted from the message', {command, text});
     return {command, text};
   }
 
@@ -56,8 +61,9 @@ class Message {
         returnText = 'Problems captain!';
 
       this.send(`<@${this.user}>,` + returnText.toLowerCase(), this.messageObject.channel);
+      debug(`Error message; ${returnText} sent to the user.`);
     } catch (err) {
-      console.error(err);
+      debug('Error sending the error message.', err);
     }
   }
 
