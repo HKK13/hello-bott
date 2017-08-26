@@ -22,6 +22,11 @@ class Message {
   }
 
 
+  send(text) {
+    throw new Error('Not Implemented, please provide a send method.');
+  }
+
+
   /**
    * Extracts the first word from the message text
    * and returns them as two object fields.
@@ -53,14 +58,16 @@ class Message {
   throw(error) {
     try {
       let returnText = '';
-      if (error.name == 'TypeError')
-        returnText = `<@${this.user}>, command '${this.command}' does not exist.`;
+      if (error.name == 'TypeError') {
+        let command = this.command.substr(1, this.command.length-1);
+        returnText = `<@${this.user}>, command '${command}' does not exist.`;
+      }
       else if (error.name == 'LeakableBotError')
         returnText = `<@${this.user}>, ${error.message}`;
       else
         returnText = 'Problems captain!';
 
-      this.send(`<@${this.user}>,` + returnText.toLowerCase(), this.messageObject.channel);
+      this.send(returnText, this.messageObject.channel);
       debug(`Error message; ${returnText} sent to the user.`);
     } catch (err) {
       debug('Error sending the error message.', err);
