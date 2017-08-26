@@ -4,7 +4,7 @@
   "description": "Bot assistant for organizations using teams and slack.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "./node_modules/.bin/nyc --reporter=text-lcov --all ./node_modules/.bin/_mocha"
   },
   "author": "",
   "license": "ISC",
@@ -19,6 +19,7 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^3.2.0",
+    "nyc": "^11.1.0",
     "sinon": "^3.2.1"
   }
 }
