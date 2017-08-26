@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/HKK13/hello-bott.svg?branch=master)](https://travis-ci.org/HKK13/hello-bott)
+[![Coverage Status](https://coveralls.io/repos/github/HKK13/hello-bott/badge.svg?branch=master)](https://coveralls.io/github/HKK13/hello-bott?branch=master)
+
 # Task Manager
 
 Slack logging utility bot for work history. For now.
