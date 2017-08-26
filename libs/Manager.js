@@ -4,15 +4,14 @@ const _ = require('lodash');
 const config = require('config');
 const debug = require('debug')('manager');
 const Workday = require('../models/Workday');
-const Bot = require('./Bot');
 
 
 class Manager{
 
-  constructor() {
+  constructor(bot) {
     this.commands = new Map(); // Maybe use Set?
     this.dispatchCommand = this.dispatchCommand.bind(this);
-    Bot.on('message', this.dispatchCommand);
+    bot.on('message', this.dispatchCommand);
     debug('Manager created.');
   }
 
@@ -60,9 +59,11 @@ class Manager{
    * @private
    */
   async _start(text, message) {
-    await Workday.isLastDayEnded(message.user);
+    let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
 
-    let now = new Date();
+    if (!lastWorkday.end) throw new LeakableBotError('There is already an ongoind day.');
+
+    let now = Date.now();
     let newWorkday = new Workday({
       slackId: message.user,
       begin: now,
@@ -114,4 +115,4 @@ class Manager{
   }
 }
 
-module.exports = new Manager();
+module.exports = Manager;

@@ -6,7 +6,7 @@ let Workday = mongoose.Schema({
   intervals: [
     {
       _id: false,
-      begin: {type: Date},
+      begin: {type: Date, default: Date.now},
       end: {type: Date},
       description: {type: String}
     }
@@ -15,22 +15,6 @@ let Workday = mongoose.Schema({
   slackId: {type: String, required: true, index: true},
   createdAt: {type: Date, default: Date.now}
 });
-
-
-/**
- * Looks if the last day is ended properly.
- * @param {Object} user
- * @returns {Promise}
- */
-Workday.statics.isLastDayEnded = async function (id) {
-  let lastWorkday = await this.findOne({slackId: id}).sort({createdAt: -1});
-
-  if (!lastWorkday) return Promise.resolve(true);
-  if (!lastWorkday.end)
-    throw new LeakableBotError('Unfinished workday exists.');
-
-  return Promise.resolve(true);
-};
 
 
 Workday.statics.getLastWorkdayByUser = function (id) {
