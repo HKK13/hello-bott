@@ -7,7 +7,7 @@ let sinon = require('sinon');
 const mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-let Workday = require('../models/workday');
+let Workday = require('../models/Workday');
 
 
 describe('# Workday Schema', () => {
