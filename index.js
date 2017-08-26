@@ -3,7 +3,6 @@
 /*
  * Libraries
  */
-const logger = require('koa-logger');
 const config = require('config');
 const mongoose = require('mongoose');
 const Manager = require('./libs/Manager');
