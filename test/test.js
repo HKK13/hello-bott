@@ -1,107 +1,102 @@
+'use strict';
+
 let chai = require('chai');
-let Promise = require('bluebird');
+let expect = chai.expect;
+let sinon = require('sinon');
 
-let mongoose = require('mongoose');
-
-mongoose.Promise = Promise;
-let assert = chai.assert;
+const mongoose = require('mongoose');
+mongoose.Promise = require('bluebird');
 
 let Workday = require('../models/workday');
 
-let Manager = require('../libs/manager');
-let TestModule = require('./modules/module');
-let Bot = require('./mock/bot');
 
-/**
- * I SUCK AT TESTING!
- */
+describe('# Workday Schema', () => {
+  describe('- validate', () => {
+    it('should not validate without a username.', (done) => {
+      let params = {
+        intervals: [{description: 'test'}]
+      };
 
-describe('User', () => {
-
-  it('should connect to test database', () => {
-    return mongoose.connect('mongodb://localhost:/taskman-test');
+      let workday = new Workday(params);
+      workday.validate((err) => {
+        expect(err).to.be.an.instanceof(Error);
+        done();
+      });
+    });
   });
 
-});
+  describe('- endDay', () => {
+    it('should end the day if it is still ongoing', (done) => {
 
-
-describe('Workday', () => {
-  it('should start a workday', async () => {
-    try {
-      let now = new Date();
-
+      let now = Date.now();
       let workday = new Workday({
-        slackId: 'TESTUSR',
+        slackId: 'SOMEUSER',
         begin: now,
-        intervals: [{begin: now, description: ''}],
+        intervals: [{begin: now, description: 'test'}]
       });
 
-      let dbWorkday = await workday.save();
+      sinon.stub(Workday.prototype, 'save').callsFake(function () {
+        expect((new Date(this.begin)).getTime()).to.be.equal(now);
+        expect((new Date(this.begin)).getTime()).to.be.equal(now);
+        expect(this.intervals[0].end).to.be.an.instanceOf(Date);
 
-      assert.isNotNull(dbWorkday.begin);
-      assert.lengthOf(dbWorkday.intervals, 1);
-      assert.isNotNull(dbWorkday.intervals[0].begin);
-      assert.isUndefined(dbWorkday.intervals[0].end);
-      assert.isUndefined(dbWorkday.end);
-      assert.isDefined(dbWorkday.createdAt);
+        workday.save.restore();
+        done();
+      });
 
-      return Promise.resolve();
-    } catch (err) {
-      console.error(err);
-      return Promise.reject(err);
-    }
-  });
+      workday.endDay();
 
-
-  it('should determine that the last workday is not finished.', async () => {
-    try {
-      let result = await Workday.isLastDayEnded('TESTUSR');
-
-      assert.isTrue(result);
-      return Promise.resolve();
-    } catch (err) {
-      if(err.name == 'LeakableBotError') return Promise.resolve();
-
-      console.error(err);
-      return Promise.reject(err);
-    }
-  });
-});
-
-
-describe('Manager', () => {
-  let bot = Bot;
-  let manager = null;
-
-
-  it('should construct manager with the bot and modules.', (done) => {
-    manager = new Manager(bot, {
-      'test': new TestModule(bot)
     });
-
-    assert.lengthOf(Object.keys(manager.commands), 2);
-    assert.typeOf(manager.bot, 'Object');
-    assert.typeOf(manager.bot.rtm, 'Object');
-    assert.typeOf(manager.bot.web, 'Object');
-    assert.typeOf(manager.bot.owner, 'Object');
-    assert.equal(manager.bot.owner.id, 'TESTUSR');
-    assert.equal(manager.bot.id, 'TASKMAN');
-
-    done();
   });
 
-  it('should listen for incoming messages from bot.', function (done) {
-    manager.listen();
-    manager.bot.on('testReturn', (res) => {
-      done();
+  describe('- continueDay', (done) => {
+    it('should continue if the last interval is ended and current day is still ongoing.', (done) => {
+
+      let now = Date.now();
+      let workday = new Workday({
+        slackId: 'SOMEUSER',
+        begin: now,
+        intervals: [{begin: now, description: 'test', end: now+1000}]
+      });
+
+      sinon.stub(Workday.prototype, 'save').callsFake(function () {
+        let obj = this;
+        expect(obj).to.have.a.property('begin').that.is.an.instanceof(Date);
+        expect(obj.end).to.be.undefined;
+        expect(obj.intervals).to.have.lengthOf(2);
+        expect(obj.intervals[1]).to.have.property('begin').that.is.an.instanceof(Date);
+        expect(obj.intervals[1].end).to.be.undefined;
+        workday.save.restore();
+        done();
+      });
+
+      workday.continueDay('Hebele');
+
     });
-    manager.bot.emit('message', {user: 'TESTUSR', text: '<@TASKMAN> test test', channel: 'CHANNEL'});
   });
-});
 
-describe('Cleanup', () => {
-  it('should wipe test database', () => {
-    return mongoose.connection.db.dropDatabase();
+  describe('- giveBreak', () => {
+    it('should give a break if there is an interval still in progress.', (done) => {
+      let now = Date.now();
+      let workday = new Workday({
+        slackId: 'SOMEUSER',
+        begin: now,
+        intervals: [{begin: now, description: 'test'}]
+      });
+
+      sinon.stub(Workday.prototype, 'save').callsFake(function () {
+        let obj = this;
+        expect(obj).to.have.a.property('begin').that.is.an.instanceof(Date);
+        expect(obj.end).to.be.undefined;
+        expect(obj.intervals).to.have.lengthOf(1);
+        expect(obj.intervals[0]).to.have.property('begin').that.is.an.instanceof(Date);
+        expect(obj.intervals[0]).to.have.property('end').that.is.an.instanceof(Date);
+        workday.save.restore();
+        done();
+      });
+
+      workday.giveBreak();
+    })
   });
-});
 
+});
