@@ -16,6 +16,8 @@ mongoose.Promise = Promise;
 let Workday = require('../models/Workday');
 let Message = require('../libs/Message');
 let ModuleCore = require('../libs/ModuleCore');
+let Manager = require('../libs/Manager');
+let BotMock = require('./mock/bot');
 
 
 let params = { type: 'message',
@@ -342,7 +344,8 @@ describe('# ModuleCore Class', () => {
 
   describe('- decideDispatch', () => {
     it('should decide dispatch path.', () => {
-      let message = new Message(params);
+      let copyParams = Object.assign({}, params);
+      let message = new Message(copyParams);
       let {command, text} = message.extractCommand();
 
       ModuleCore.prototype._testFunction = (text, mess) => {
@@ -365,7 +368,8 @@ describe('# ModuleCore Class', () => {
 
   describe('- dispatchCommand', () => {
     it('should handle call order by calling parseCommand then decideDispatch.', () => {
-      let message = new Message(params);
+      let copyParams = Object.assign({}, params);
+      let message = new Message(copyParams);
       message.messageObject.text = 'testfunction someproj';
 
       ModuleCore.prototype._testfunction = (text, mess) => {
@@ -386,6 +390,92 @@ describe('# ModuleCore Class', () => {
         expect(err).to.be.an.instanceof(TypeError);
       });
       module.dispatchCommand(message);
+    });
+  });
+});
+
+describe('# Manager Class', () => {
+  let bot = new BotMock();
+
+  describe('- constructor', () => {
+    it('should construct Manager with bot properties.', () => {
+      let manager = new Manager(bot);
+
+      expect(manager).to.have.property('commands').that.is.an.instanceof(Map);
+      expect(manager).to.have.property('botOwner').that.is.equal('U4GQ53YG7');
+    });
+  });
+
+  describe('- registerCommand', () => {
+    it('should register command to commands Map.', () => {
+      let manager = new Manager(bot);
+      manager.registerCommand('somecommand', (message) => {});
+
+      expect(manager.commands).to.be.an.instanceof(Map);
+      expect(manager.commands.has('_somecommand')).to.be.true;
+    });
+  });
+
+  describe('- dispatchCommand', () => {
+    it('should throw TypeError if command is not available.', () => {
+      let manager = new Manager(bot);
+      let copyParam = Object.assign({}, params);
+      copyParam.text = 'nonexistentcmd someproj';
+      let message = new Message(copyParam);
+
+      sinon.stub(message, 'throw').callsFake((err) => {
+        expect(err).to.be.an.instanceof(TypeError);
+      });
+
+      bot.emitMessage(message);
+    });
+
+    it('should invoke function related to the given command.', () => {
+      let manager = new Manager(bot);
+      let message = new Message(params);
+
+      sinon.stub(manager, '_start').callsFake((text, mess) => {
+        expect(text).to.be.equal(params.text.split(' ')[1]);
+        expect(mess).to.eql(message);
+      });
+
+      return manager.dispatchCommand(message);
+    });
+  });
+
+  describe('- _start', () => {
+    it('should create a new workday record if previous days are ended or there are ' +
+      'no previous days.', () => {
+      let manager = new Manager(bot);
+      let message = new Message(params);
+
+      sinon.stub(Workday.prototype, 'save');
+      sinon.stub(Workday, 'getLastWorkdayByUser');
+      sinon.stub(message, 'reply').callsFake((text) => {
+        expect(text).to.be
+          .equal(`<@${message.user}>'s workday is just started with ${params.text.split(' ')[1]}.`);
+        Workday.prototype.save.restore();
+        Workday.getLastWorkdayByUser.restore();
+      });
+
+      return manager._start(params.text.split(' ')[1], message);
+    });
+
+    it('should throw a LeakableBotError if there is already an ongoin day.', () => {
+      let manager = new Manager(bot);
+      let message = new Message(params);
+      sinon.stub(Workday, 'getLastWorkdayByUser').callsFake(async (user) => {
+
+        let now = Date.now();
+        return new Workday({
+          slackId: user,
+          begin: now,
+          intervals: [{begin: now, description: 'test', end: now+10000}]
+        });
+      });
+
+      return expect(manager._start(params.text.split(' ')[1], message))
+        .to.be.rejectedWith(LeakableBotError());
     });
   });
 
