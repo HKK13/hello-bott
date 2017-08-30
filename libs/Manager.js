@@ -10,9 +10,9 @@ const Workday = require('../models/Workday');
 class Manager{
 
   constructor(bot) {
-    this.commands = new Map(); // Maybe use Set?
+    this.commands = new Map();
     this.dispatchCommand = this.dispatchCommand.bind(this);
-    this.botOnwer = bot.owner.id;
+    this.botOwner = bot.owner.id;
     bot.on('message', this.dispatchCommand);
     debug('Manager created.');
   }
@@ -35,13 +35,13 @@ class Manager{
   async dispatchCommand(message) {
     try {
       let {command, text} = message.extractCommand();
-      debug(`Received '${command}', is user owner: ${this.botOnwer == message.user}.`);
+      debug(`Received '${command}', is user owner: ${this.botOwner === message.user}.`);
 
       // Look if command exists in plugged in modules.
       if (this.commands.has(command)) {
         message.text = text;
         debug(`Redirecting message to ${command}`);
-        debug(`List of comands are %o`, this.commands.keys());
+        debug(`List of commands are %o`, this.commands.keys());
         return this.commands.get(command)(message);
       }
 
