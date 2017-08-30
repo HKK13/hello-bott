@@ -1,6 +1,7 @@
 function LeakableBotError(message) {
   this.name = 'LeakableBotError';
-  this.message = message.toLowerCase();
+  if (message)
+    this.message = message.toLowerCase();
 }
 
 LeakableBotError.prototype = Error.prototype;
