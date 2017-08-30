@@ -56,22 +56,18 @@ class Message {
    * @param {Error} error
    */
   throw(error) {
-    try {
-      let returnText = '';
-      if (error.name == 'TypeError') {
-        let command = this.command.substr(1, this.command.length-1);
-        returnText = `<@${this.user}>, command '${command}' does not exist.`;
-      }
-      else if (error.name == 'LeakableBotError')
-        returnText = `<@${this.user}>, ${error.message}`;
-      else
-        returnText = 'Problems captain!';
-
-      this.send(returnText, this.messageObject.channel);
-      debug(`Error message; ${returnText} sent to the user.`);
-    } catch (err) {
-      debug('Error sending the error message.', err);
+    let returnText = '';
+    if (error.name == 'TypeError') {
+      let command = this.command.substr(1, this.command.length-1);
+      returnText = `<@${this.user}>, command '${command}' does not exist.`;
     }
+    else if (error.name == 'LeakableBotError')
+      returnText = `<@${this.user}>, ${error.message}`;
+    else
+      returnText = 'Problems captain!';
+
+    this.send(returnText, this.messageObject.channel);
+    debug(`Error message; ${returnText} sent to the user.`);
   }
 
 }
