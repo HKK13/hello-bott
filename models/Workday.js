@@ -22,10 +22,7 @@ Workday.statics.getLastWorkdayByUser = function (id) {
 };
 
 
-Workday.methods.endDay = function () {
-  if(!this.begin)
-    throw new LeakableBotError('Cannot end what you didn\'t start');
-
+Workday.methods.endDay = async function () {
   if(this.end)
     throw new LeakableBotError('Already called it a day.');
 
@@ -42,12 +39,9 @@ Workday.methods.endDay = function () {
 };
 
 
-Workday.methods.giveBreak = function () {
-  if(!this.begin)
-    throw new LeakableBotError('Cannot break if not started.');
-
+Workday.methods.giveBreak = async function () {
   if(this.end)
-    throw new LeakableBotError('You cannot break that which is already ended.');
+    throw new LeakableBotError('You cannot break when the day is already over.');
 
   let lastInterval = this.intervals.length-1;
   if(this.intervals[lastInterval].end)
@@ -58,10 +52,7 @@ Workday.methods.giveBreak = function () {
 };
 
 
-Workday.methods.continueDay = function (description) {
-  if(!this.begin)
-    throw new LeakableBotError('Cannot continue if not started.');
-
+Workday.methods.continueDay = async function (description) {
   if(this.end)
     this.end = null;
 
