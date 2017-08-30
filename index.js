@@ -13,7 +13,7 @@ mongoose.Promise = require('bluebird');
 mongoose.connect(process.env.DB_LINK || config.get('database.link'));
 
 Bot.once('connected', () => {
-  Bot.on('manager_message', () => console.log('heyyyy'));
+  let manager = new Manager(Bot);
 });
 
 
