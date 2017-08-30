@@ -1,6 +1,5 @@
 .idea/
 node_modules/
 docker-volume/
-coverage/
 .DS_Store
 config/
