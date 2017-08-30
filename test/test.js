@@ -14,6 +14,7 @@ const Promise = require('bluebird');
 mongoose.Promise = Promise;
 
 let Workday = require('../models/Workday');
+let Message = require('../libs/Message');
 
 
 describe('# Workday Schema', () => {
@@ -30,7 +31,7 @@ describe('# Workday Schema', () => {
       });
     });
 
-    it('should validate required fields', (done) => {
+    it('should validate required fields.', (done) => {
       let params = {
         slackId: 'SOMEUSER'
       };
@@ -41,7 +42,7 @@ describe('# Workday Schema', () => {
   });
 
   describe('- endDay', () => {
-    it('should end the day if it is still ongoing', () => {
+    it('should end the day if it is still ongoing.', () => {
 
       let now = Date.now();
       let workday = new Workday({
@@ -86,7 +87,7 @@ describe('# Workday Schema', () => {
       return workday.endDay();
     });
 
-    it('should throw an error if there is no active workday', async () => {
+    it('should throw an error if there is no active workday.', async () => {
       let now = Date.now();
       let workday = new Workday({
         slackId: 'SOMEUSER',
@@ -210,7 +211,7 @@ describe('# Workday Schema', () => {
   });
 
   describe('- getLastWorkdayByUser', () => {
-    it('should call model.findOne with slack id and get the last item', (done) => {
+    it('should call model.findOne with slack id and get the last item.', (done) => {
       sinon.stub(Workday, 'findOne').callsFake(function () {
         this.sort = (sort) => {
           expect(sort).to.eql({ createdAt: -1 });
@@ -225,4 +226,103 @@ describe('# Workday Schema', () => {
       done();
     })
   });
+});
+
+describe('# Message Class', () => {
+
+  let params = { type: 'message',
+    channel: 'C4GPU1BGE',
+    user: 'U4GQ53YG7',
+    text: 'start someproj',
+    ts: '1504081398.000040',
+    source_team: 'T4G1T27GB',
+    team: 'T4G1T27GB' };
+
+  describe('- constructor', () => {
+    it('should construct message object with slack response.', () => {
+      let message = new Message(params);
+
+      expect(message.messageObject).to.eql(params);
+      expect(message.text).to.be.equal(params.text);
+      expect(message.user).to.be.equal(params.user);
+    });
+  });
+
+  describe('- send', () => {
+    it('should throw an error if send method is not provided.', () => {
+      let message = new Message(params);
+
+      expect(message.send).to.throw(Error);
+    });
+  });
+
+  describe('- reply', () => {
+    it('should reply to the sender\'s channel', () => {
+      let message = new Message(params);
+      let textMessage = 'SOMETESTMESSAGE.';
+      sinon.stub(message, 'send').callsFake((text, channel) => {
+        expect(text).to.be.equal(textMessage);
+        expect(channel).to.be.equal(params.channel);
+        message.send.restore();
+      });
+
+      message.reply(textMessage);
+    });
+  });
+
+  describe('- extractCommand', () => {
+    let message = new Message(params);
+    let {command, text} = message.extractCommand();
+    let testCommand = params.text.split(' ')[0];
+    let testText = params.text.split(' ')[1];
+
+    expect(command).to.be.equal('_' + testCommand);
+    expect(text).to.be.equal(testText);
+    expect(message.text).to.be.equal(text);
+    expect(message.command).to.be.equal(command);
+  });
+
+  describe('- throw', () => {
+    it('should send no command error message to user.', () => {
+      let message = new Message(params);
+      let {command, text} = message.extractCommand();
+      command = command.split('_')[1];
+      sinon.stub(message, 'send').callsFake((text, channel) => {
+        expect(text).to.be.equal(`<@${message.user}>, command '${command}' does not exist.`);
+        expect(channel).to.be.equal(message.messageObject.channel);
+        message.send.restore();
+      });
+
+      message.throw(new TypeError('has no function.'));
+    });
+
+    it('should send leakable bot error messsage to the user.', () => {
+      let message = new Message(params);
+      let {command, text} = message.extractCommand();
+      let errorMessage = 'SOMEVERBOSETESTERRORMESSAGE';
+      command = command.split('_')[1];
+      sinon.stub(message, 'send').callsFake((text, channel) => {
+        expect(text).to.be.equal(`<@${message.user}>, ${errorMessage.toLowerCase()}`);
+        expect(channel).to.be.equal(message.messageObject.channel);
+        message.send.restore();
+      });
+
+      message.throw(new LeakableBotError(errorMessage));
+    });
+
+    it('should send generic error messsage to the user.', () => {
+      let message = new Message(params);
+      let {command, text} = message.extractCommand();
+      command = command.split('_')[1];
+
+      sinon.stub(message, 'send').callsFake((text, channel) => {
+        expect(text).to.be.equal(`Problems captain!`);
+        expect(channel).to.be.equal(message.messageObject.channel);
+        message.send.restore();
+      });
+
+      message.throw(new Error('SOMEMESSAGE'));
+    });
+  });
+
 });
