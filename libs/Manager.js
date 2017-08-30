@@ -11,6 +11,7 @@ class Manager{
   constructor(bot) {
     this.commands = new Map(); // Maybe use Set?
     this.dispatchCommand = this.dispatchCommand.bind(this);
+    this.botOnwer = bot.owner.id;
     bot.on('message', this.dispatchCommand);
     debug('Manager created.');
   }
@@ -33,7 +34,7 @@ class Manager{
   async dispatchCommand(message) {
     try {
       let {command, text} = message.extractCommand();
-      debug(`Received '${command}', is user owner: ${Bot.owner.id == message.user}.`);
+      debug(`Received '${command}', is user owner: ${this.botOnwer == message.user}.`);
 
       // Look if command exists in plugged in modules.
       if (this.commands.has(command)) {
