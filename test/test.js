@@ -15,6 +15,16 @@ mongoose.Promise = Promise;
 
 let Workday = require('../models/Workday');
 let Message = require('../libs/Message');
+let ModuleCore = require('../libs/ModuleCore');
+
+
+let params = { type: 'message',
+  channel: 'C4GPU1BGE',
+  user: 'U4GQ53YG7',
+  text: 'start someproj',
+  ts: '1504081398.000040',
+  source_team: 'T4G1T27GB',
+  team: 'T4G1T27GB' };
 
 
 describe('# Workday Schema', () => {
@@ -229,15 +239,6 @@ describe('# Workday Schema', () => {
 });
 
 describe('# Message Class', () => {
-
-  let params = { type: 'message',
-    channel: 'C4GPU1BGE',
-    user: 'U4GQ53YG7',
-    text: 'start someproj',
-    ts: '1504081398.000040',
-    source_team: 'T4G1T27GB',
-    team: 'T4G1T27GB' };
-
   describe('- constructor', () => {
     it('should construct message object with slack response.', () => {
       let message = new Message(params);
@@ -322,6 +323,69 @@ describe('# Message Class', () => {
       });
 
       message.throw(new Error('SOMEMESSAGE'));
+    });
+  });
+});
+
+describe('# ModuleCore Class', () => {
+  describe('- parseCommand', () => {
+    it('should parse command by extracting command from text', () => {
+      let message = new Message(params);
+      let module = new ModuleCore();
+
+      sinon.stub(module, 'parseCommand');
+      module.parseCommand(message);
+      sinon.assert.calledWith(module.parseCommand, message);
+      module.parseCommand.restore();
+    });
+  });
+
+  describe('- decideDispatch', () => {
+    it('should decide dispatch path.', () => {
+      let message = new Message(params);
+      let {command, text} = message.extractCommand();
+
+      ModuleCore.prototype._testFunction = (text, mess) => {
+        expect(text).to.be.equal(message.text);
+        expect(mess).to.be.eql(message);
+      };
+
+      let module = new ModuleCore();
+      module.decideDispatch('_testFunction', text, message);
+      ModuleCore.prototype._testFunction = undefined;
+    });
+
+    it('should throw TypeError if dispatch is not possible.', () => {
+      let message = new Message(params);
+      let {command, text} = message.extractCommand();
+      let module = new ModuleCore();
+      expect(module.decideDispatch('_someNonExistingFunction', text, message)).to.be.rejectedWith(TypeError);
+    });
+  });
+
+  describe('- dispatchCommand', () => {
+    it('should handle call order by calling parseCommand then decideDispatch.', () => {
+      let message = new Message(params);
+      message.messageObject.text = 'testfunction someproj';
+
+      ModuleCore.prototype._testfunction = (text, mess) => {
+        expect(text).to.be.equal(message.text);
+        expect(mess).to.be.eql(message);
+      };
+
+      let module = new ModuleCore();
+      module.dispatchCommand(message);
+      ModuleCore.prototype._testfunction = undefined;
+    });
+
+    it('should send an error message if command does not exist.', () => {
+      let message = new Message(params);
+      let module = new ModuleCore();
+
+      sinon.stub(message, 'throw').callsFake((err) => {
+        expect(err).to.be.an.instanceof(TypeError);
+      });
+      module.dispatchCommand(message);
     });
   });
 
