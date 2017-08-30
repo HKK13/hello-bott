@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/HKK13/hello-bott.svg?branch=master)](https://travis-ci.org/HKK13/hello-bott)
 [![Coverage Status](https://coveralls.io/repos/github/HKK13/hello-bott/badge.svg?branch=master)](https://coveralls.io/github/HKK13/hello-bott?branch=master)
+[![Dependency Status](https://www.versioneye.com/user/projects/59a68ae30fb24f003f742c0c/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/59a68ae30fb24f003f742c0c)
 
 # Task Manager
 
