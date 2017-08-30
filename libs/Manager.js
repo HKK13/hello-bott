@@ -3,6 +3,7 @@
 const _ = require('lodash');
 const config = require('config');
 const debug = require('debug')('manager');
+const LeakableBotError = require('./errors/LeakableError');
 const Workday = require('../models/Workday');
 
 
@@ -62,7 +63,7 @@ class Manager{
   async _start(text, message) {
     let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
 
-    if (!lastWorkday.end) throw new LeakableBotError('There is already an ongoind day.');
+    if (!lastWorkday.end) throw new LeakableBotError('There is already an ongoin day.');
 
     let now = Date.now();
     let newWorkday = new Workday({
