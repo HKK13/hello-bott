@@ -113,7 +113,7 @@ class Manager{
   async _end(text, message) {
     let lastWorkday = await Workday.getLastWorkdayByUser(message.user);
     await lastWorkday.endDay();
-    message.reply(`End of the workday for <@${message.user}>.`, message);
+    message.reply(`End of the workday for <@${message.user}>.`);
   }
 }
 
