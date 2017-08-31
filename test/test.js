@@ -20,13 +20,15 @@ let Manager = require('../libs/Manager');
 let BotMock = require('./mock/bot');
 
 
-let params = { type: 'message',
+let params = {
+  type: 'message',
   channel: 'C4GPU1BGE',
   user: 'U4GQ53YG7',
   text: 'start someproj',
   ts: '1504081398.000040',
   source_team: 'T4G1T27GB',
-  team: 'T4G1T27GB' };
+  team: 'T4G1T27GB'
+};
 
 
 describe('# Workday Schema', () => {
@@ -467,6 +469,7 @@ describe('# Manager Class', () => {
       sinon.stub(Workday, 'getLastWorkdayByUser').callsFake(async (user) => {
 
         let now = Date.now();
+        Workday.getLastWorkdayByUser.restore();
         return new Workday({
           slackId: user,
           begin: now,
@@ -476,6 +479,101 @@ describe('# Manager Class', () => {
 
       return expect(manager._start(params.text.split(' ')[1], message))
         .to.be.rejectedWith(LeakableBotError());
+    });
+  });
+
+  describe('- _break', () => {
+    it('should give a break if there is an open interval.', () => {
+      let manager = new Manager(bot);
+      let copyParams = Object.assign({}, params);
+      copyParams.text = 'break someproj';
+      let message = new Message(copyParams);
+      let now = Date.now();
+      let workday = new Workday({
+        slackId: message.user,
+        begin: now,
+        intervals: [{begin: now, description: 'test'}]
+      });
+
+      sinon.stub(Workday, 'getLastWorkdayByUser').callsFake(async (user) => {
+        sinon.assert.calledWith(Workday.getLastWorkdayByUser, message.user);
+        Workday.getLastWorkdayByUser.restore();
+        return workday;
+      });
+
+
+      sinon.stub(workday, 'giveBreak');
+      sinon.stub(message, 'reply').callsFake((text) => {
+        expect(text).to.be.equal(`<@${message.user}> is giving a break. (${message.text})`);
+
+      });
+
+      return manager._break(message.text, message);
+
+    });
+  });
+
+  describe('- _continue', () => {
+    it('should create a new open interval if previous one is ended.', () => {
+      let manager = new Manager(bot);
+
+      let copyParams = Object.assign({}, params);
+      copyParams.text = 'break someproj';
+      let message = new Message(copyParams);
+
+      let now = Date.now();
+      let workday = new Workday({
+        slackId: message.user,
+        begin: now,
+        intervals: [{begin: now, description: 'test', end:now+10000}]
+      });
+
+      sinon.stub(Workday, 'getLastWorkdayByUser').callsFake(async (user) => {
+        sinon.assert.calledWith(Workday.getLastWorkdayByUser, message.user);
+        Workday.getLastWorkdayByUser.restore();
+        return workday;
+      });
+
+
+      sinon.stub(workday, 'continueDay');
+
+      sinon.stub(message, 'reply').callsFake((text) => {
+        sinon.assert.calledWith(workday.continueDay, message.text);
+        expect(text).to.be.equal(`<@${message.user}>'s workday continues with ${message.text}.`);
+      });
+
+      return manager._continue(message.text, message);
+    });
+  });
+
+  describe('- _end', () => {
+    it('should call end method of Workday to close the last interval and the day.', () => {
+      let manager = new Manager(bot);
+
+      let copyParams = Object.assign({}, params);
+      copyParams.text = 'end someproj';
+      let message = new Message(copyParams);
+
+      let now = Date.now();
+      let workday = new Workday({
+        slackId: message.user,
+        begin: now,
+        intervals: [{begin: now, description: 'test'}]
+      });
+
+      sinon.stub(Workday, 'getLastWorkdayByUser').callsFake(async (user) => {
+        sinon.assert.calledWith(Workday.getLastWorkdayByUser, message.user);
+        Workday.getLastWorkdayByUser.restore();
+        return workday;
+      });
+
+
+      sinon.stub(workday, 'endDay');
+
+      sinon.stub(message, 'reply').callsFake((text) => {
+        sinon.assert.calledWith(workday.endDay);
+        expect(text).to.be.equal(`End of the workday for <@${message.user}>.`);
+      });
     });
   });
 
